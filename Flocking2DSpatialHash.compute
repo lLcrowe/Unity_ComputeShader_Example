@@ -1,0 +1,156 @@
+#pragma kernel CSClearGrid
+#pragma kernel CSBuildGrid  
+#pragma kernel CSFlocking
+
+struct UnitData
+{
+    float2 position;
+    float2 velocity;
+};
+
+#define MAX_UNITS_PER_CELL 32
+
+struct GridCell
+{
+    int unitIDs[MAX_UNITS_PER_CELL];
+    int count;
+};
+
+RWStructuredBuffer<UnitData> units;
+RWStructuredBuffer<GridCell> grid;
+
+int unitCount;
+float2 boundsMin;
+float2 boundsMax;
+float cellSize;
+int gridWidth;
+int gridHeight;
+
+float separationRadius;
+float alignmentRadius;
+float cohesionRadius;
+float separationWeight;
+float alignmentWeight;
+float cohesionWeight;
+float maxSpeed;
+float maxForce;
+float deltaTime;
+
+int PositionToGridIndex(float2 pos)
+{
+    int2 cell = int2((pos - boundsMin) / cellSize);
+    cell.x = clamp(cell.x, 0, gridWidth - 1);
+    cell.y = clamp(cell.y, 0, gridHeight - 1);
+    return cell.x + cell.y * gridWidth;
+}
+
+[numthreads(256, 1, 1)]
+void CSClearGrid(uint3 id : SV_DispatchThreadID)
+{
+    int totalCells = gridWidth * gridHeight;
+    if (id.x >= (uint)totalCells) return;
+    
+    grid[id.x].count = 0;
+}
+
+[numthreads(256, 1, 1)]
+void CSBuildGrid(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)unitCount) return;
+    
+    UnitData unit = units[id.x];
+    int cellIdx = PositionToGridIndex(unit.position);
+    
+    int slot;
+    InterlockedAdd(grid[cellIdx].count, 1, slot);
+    
+    if (slot < MAX_UNITS_PER_CELL)
+    {
+        grid[cellIdx].unitIDs[slot] = id.x;
+    }
+}
+
+[numthreads(256, 1, 1)]
+void CSFlocking(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)unitCount) return;
+    
+    UnitData self = units[id.x];
+    int cellIdx = PositionToGridIndex(self.position);
+    int2 cellCoord = int2(cellIdx % gridWidth, cellIdx / gridWidth);
+    
+    float2 separation = 0;
+    float2 alignment = 0;
+    float2 cohesion = 0;
+    int sepCount = 0;
+    int aliCount = 0;
+    int cohCount = 0;
+    
+    for (int dy = -1; dy <= 1; dy++)
+    {
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            int2 nCoord = cellCoord + int2(dx, dy);
+            if (nCoord.x < 0 || nCoord.x >= gridWidth || nCoord.y < 0 || nCoord.y >= gridHeight)
+                continue;
+            
+            int nIdx = nCoord.x + nCoord.y * gridWidth;
+            int nCount = min(grid[nIdx].count, MAX_UNITS_PER_CELL);
+            
+            for (int i = 0; i < nCount; i++)
+            {
+                int otherId = grid[nIdx].unitIDs[i];
+                if (otherId == id.x) continue;
+                
+                UnitData other = units[otherId];
+                float2 diff = self.position - other.position;
+                float dist = length(diff);
+                
+                if (dist > 0 && dist < separationRadius)
+                {
+                    separation += normalize(diff) / dist;
+                    sepCount++;
+                }
+                
+                if (dist > 0 && dist < alignmentRadius)
+                {
+                    alignment += other.velocity;
+                    aliCount++;
+                }
+                
+                if (dist > 0 && dist < cohesionRadius)
+                {
+                    cohesion += other.position;
+                    cohCount++;
+                }
+            }
+        }
+    }
+    
+    if (sepCount > 0) separation /= (float)sepCount;
+    if (aliCount > 0) alignment = normalize(alignment / (float)aliCount);
+    if (cohCount > 0) cohesion = normalize(cohesion / (float)cohCount - self.position);
+    
+    float2 accel = separation * separationWeight + alignment * alignmentWeight + cohesion * cohesionWeight;
+    float accMag = length(accel);
+    if (accMag > maxForce) accel = normalize(accel) * maxForce;
+    
+    self.velocity += accel * deltaTime;
+    float velMag = length(self.velocity);
+    if (velMag > maxSpeed) self.velocity = normalize(self.velocity) * maxSpeed;
+    
+    self.position += self.velocity * deltaTime;
+    
+    if (self.position.x < boundsMin.x || self.position.x > boundsMax.x)
+    {
+        self.velocity.x *= -1;
+        self.position.x = clamp(self.position.x, boundsMin.x, boundsMax.x);
+    }
+    if (self.position.y < boundsMin.y || self.position.y > boundsMax.y)
+    {
+        self.velocity.y *= -1;
+        self.position.y = clamp(self.position.y, boundsMin.y, boundsMax.y);
+    }
+    
+    units[id.x] = self;
+}

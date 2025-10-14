@@ -1,0 +1,124 @@
+// Flocking2D.compute
+#pragma kernel CSFlocking
+
+struct UnitData
+{
+    float2 position;
+    float2 velocity;
+};
+
+RWStructuredBuffer<UnitData> units;
+
+int unitCount;
+float separationRadius;
+float alignmentRadius;
+float cohesionRadius;
+float separationWeight;
+float alignmentWeight;
+float cohesionWeight;
+float maxSpeed;
+float maxForce;
+float deltaTime;
+
+// 경계 설정
+float2 boundsMin;
+float2 boundsMax;
+
+[numthreads(64, 1, 1)]
+void CSFlocking(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)unitCount) return;
+    
+    UnitData self = units[id.x];
+    
+    // 3가지 힘
+    float2 separation = float2(0, 0);
+    float2 alignment = float2(0, 0);
+    float2 cohesion = float2(0, 0);
+    
+    int sepCount = 0;
+    int aliCount = 0;
+    int cohCount = 0;
+    
+    // 모든 이웃 검사
+    for (int i = 0; i < unitCount; i++)
+    {
+        if (i == (int)id.x) continue;
+        
+        UnitData other = units[i];
+        float2 diff = self.position - other.position;
+        float distance = length(diff);
+        
+        // Separation
+        if (distance > 0 && distance < separationRadius)
+        {
+            float2 repel = normalize(diff) / distance;
+            separation += repel;
+            sepCount++;
+        }
+        
+        // Alignment
+        if (distance > 0 && distance < alignmentRadius)
+        {
+            alignment += other.velocity;
+            aliCount++;
+        }
+        
+        // Cohesion
+        if (distance > 0 && distance < cohesionRadius)
+        {
+            cohesion += other.position;
+            cohCount++;
+        }
+    }
+    
+    // 평균 계산
+    if (sepCount > 0) separation /= (float)sepCount;
+    if (aliCount > 0) alignment = normalize(alignment / (float)aliCount);
+    if (cohCount > 0)
+    {
+        cohesion /= (float)cohCount;
+        cohesion = normalize(cohesion - self.position);
+    }
+    
+    // 가중치 적용
+    float2 acceleration = 
+        separation * separationWeight +
+        alignment * alignmentWeight +
+        cohesion * cohesionWeight;
+    
+    // 힘 제한
+    float accMag = length(acceleration);
+    if (accMag > maxForce)
+    {
+        acceleration = normalize(acceleration) * maxForce;
+    }
+    
+    // 속도 업데이트
+    self.velocity += acceleration * deltaTime;
+    
+    // 속도 제한
+    float velMag = length(self.velocity);
+    if (velMag > maxSpeed)
+    {
+        self.velocity = normalize(self.velocity) * maxSpeed;
+    }
+    
+    // 위치 업데이트
+    self.position += self.velocity * deltaTime;
+    
+    // 경계 반사
+    if (self.position.x < boundsMin.x || self.position.x > boundsMax.x)
+    {
+        self.velocity.x *= -1;
+        self.position.x = clamp(self.position.x, boundsMin.x, boundsMax.x);
+    }
+    if (self.position.y < boundsMin.y || self.position.y > boundsMax.y)
+    {
+        self.velocity.y *= -1;
+        self.position.y = clamp(self.position.y, boundsMin.y, boundsMax.y);
+    }
+    
+    // 결과 저장
+    units[id.x] = self;
+}
