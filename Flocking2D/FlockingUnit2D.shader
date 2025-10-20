@@ -55,13 +55,23 @@ Shader "Custom/FlockingUnit2D"
                 // GPU 버퍼에서 유닛 데이터 읽기 (CPU 복사 없음)
                 UnitData unit = _UnitsBuffer[instanceID];
                 
-                // 회전 계산 (velocity 방향)
-                float angle = atan2(unit.velocity.y, unit.velocity.x) - 1.5708; // -90도
-                float cosA = cos(angle);
-                float sinA = sin(angle);
+                //// 회전 계산 (velocity 방향)
+                //float angle = atan2(unit.velocity.y, unit.velocity.x) - 1.5708; // -90도
+                //float cosA = cos(angle);
+                //float sinA = sin(angle);
                 
-                // 2D 회전 매트릭스
-                float2x2 rotMatrix = float2x2(cosA, -sinA, sinA, cosA);
+                //// 2D 회전 매트릭스
+                //float2x2 rotMatrix = float2x2(cosA, -sinA, sinA, cosA);
+
+                // 🔥 개선: 정규화된 벡터로 직접 계산 (빠름)
+                float2 forward = normalize(unit.velocity);
+                float2 right = float2(-forward.y, forward.x);
+
+                // 회전 매트릭스 (삼각함수 없음!)
+                float2x2 rotMatrix = float2x2(
+                    forward.x, -forward.y,
+                    forward.y, forward.x
+                );
                 
                 // 로컬 정점을 회전
                 float2 rotatedPos = mul(rotMatrix, v.vertex.xy * _UnitScale);

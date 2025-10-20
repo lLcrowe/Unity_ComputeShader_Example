@@ -41,8 +41,6 @@ public class FlockingSpatialHash : MonoBehaviour
     private int gridHeight;
     private int gridTotal;
 
-    private float debugTimer = 0f;
-
     void Start()
     {
         if (unitMesh == null)
@@ -74,7 +72,7 @@ public class FlockingSpatialHash : MonoBehaviour
     }
 
     void SetupGrid()
-    {
+    {   
         float bounds = boundsSize * 2f;
         gridWidth = Mathf.CeilToInt(bounds / cellSize);
         gridHeight = Mathf.CeilToInt(bounds / cellSize);
@@ -159,6 +157,10 @@ public class FlockingSpatialHash : MonoBehaviour
         computeShader.SetBuffer(flockingKernel, "units", unitBuffer);
         computeShader.SetBuffer(flockingKernel, "grid", gridBuffer);
 
+        
+        computeShader.SetFloat("deltaTime", Time.deltaTime);
+        
+
         Debug.Log("Compute shader setup complete");
     }
 
@@ -175,25 +177,37 @@ public class FlockingSpatialHash : MonoBehaviour
         if (unitBuffer == null || computeShader == null) return;
 
         // 디버그: 2초마다 첫 유닛 위치 출력
-        debugTimer += Time.deltaTime;
-        if (logDebugInfo && debugTimer > 2f)
-        {
-            debugTimer = 0f;
-            Vector4[] debugData = new Vector4[1];
-            unitBuffer.GetData(debugData, 0, 0, 1);
-            Debug.Log($"Frame {Time.frameCount}: Unit 0 pos=({debugData[0].x:F1},{debugData[0].y:F1}) vel=({debugData[0].z:F2},{debugData[0].w:F2})");
-        }
+        //debugTimer += Time.deltaTime;
+        //if (logDebugInfo && debugTimer > 2f)
+        //{
+        //    debugTimer = 0f;
+        //    Vector4[] debugData = new Vector4[1];
+        //    unitBuffer.GetData(debugData, 0, 0, 1);
+        //    Debug.Log($"Frame {Time.frameCount}: Unit 0 pos=({debugData[0].x:F1},{debugData[0].y:F1}) vel=({debugData[0].z:F2},{debugData[0].w:F2})");
+        //}
+
+
 
         // Compute 실행
+        
         int clearGroups = Mathf.CeilToInt(gridTotal / 256f);
         computeShader.Dispatch(clearKernel, clearGroups, 1, 1);
 
         int unitGroups = Mathf.CeilToInt(unitCount / 256f);
         computeShader.Dispatch(buildKernel, unitGroups, 1, 1);
 
-        computeShader.SetFloat("deltaTime", Time.deltaTime);
-        computeShader.Dispatch(flockingKernel, unitGroups, 1, 1);
 
+        UnityEngine.Profiling.Profiler.BeginSample("SetDeltaTime");
+        //computeShader.SetFloat("deltaTime", Time.deltaTime);
+        UnityEngine.Profiling.Profiler.EndSample();
+
+
+        UnityEngine.Profiling.Profiler.BeginSample("flockingKernel");
+        computeShader.Dispatch(flockingKernel, unitGroups, 1, 1);
+        UnityEngine.Profiling.Profiler.EndSample();
+
+
+        UnityEngine.Profiling.Profiler.BeginSample("RenderBounds");
         // 렌더링
         Bounds renderBounds = new Bounds(
             Vector3.zero,
@@ -211,6 +225,7 @@ public class FlockingSpatialHash : MonoBehaviour
             UnityEngine.Rendering.ShadowCastingMode.Off,
             false
         );
+        UnityEngine.Profiling.Profiler.EndSample();
     }
 
     void OnDestroy()

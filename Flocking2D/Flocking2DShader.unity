@@ -391,8 +391,8 @@ MonoBehaviour:
   computeShader: {fileID: 7200000, guid: 44fa84e02e2d3ed42b0fdde76b01ea6b, type: 3}
   material: {fileID: 2100000, guid: 48e226d62c60be441adf21afa8fa2dc3, type: 2}
   unitMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
-  unitCount: 10000000
-  cellSize: 100
+  unitCount: 20000000
+  cellSize: 10000
   unitScale: 0.3
   boundsSize: 500
   separationRadius: 1
