@@ -1,4 +1,3 @@
-// FlockingUnit.shader
 Shader "Custom/FlockingUnit2D"
 {
     Properties
@@ -55,19 +54,19 @@ Shader "Custom/FlockingUnit2D"
                 // GPU 버퍼에서 유닛 데이터 읽기 (CPU 복사 없음)
                 UnitData unit = _UnitsBuffer[instanceID];
                 
-                //// 회전 계산 (velocity 방향)
+                //// 회전 계산 (velocity 방향)//SFU 유닛사용
                 //float angle = atan2(unit.velocity.y, unit.velocity.x) - 1.5708; // -90도
                 //float cosA = cos(angle);
                 //float sinA = sin(angle);
                 
-                //// 2D 회전 매트릭스
+                //회전 매트릭스
                 //float2x2 rotMatrix = float2x2(cosA, -sinA, sinA, cosA);
 
-                // 🔥 개선: 정규화된 벡터로 직접 계산 (빠름)
+                //개선: 정규화된 벡터로 직접 계산 (빠름)
                 float2 forward = normalize(unit.velocity);
                 float2 right = float2(-forward.y, forward.x);
 
-                // 회전 매트릭스 (삼각함수 없음!)
+                // 회전 매트릭스
                 float2x2 rotMatrix = float2x2(
                     forward.x, -forward.y,
                     forward.y, forward.x
@@ -87,7 +86,7 @@ Shader "Custom/FlockingUnit2D"
                 o.vertex = mul(UNITY_MATRIX_VP, float4(worldPos, 1));
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 
-                // 속도 기반 색상 (옵션)
+                // 속도 기반 색상 
                 float speed = length(unit.velocity);
                 o.color = lerp(float4(0.2, 0.2, 1, 1), float4(1, 0.2, 0.2, 1), speed / 10.0);
                 

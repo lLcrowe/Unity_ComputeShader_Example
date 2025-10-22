@@ -1,7 +1,9 @@
+//함수 네이밍
 #pragma kernel CSClearGrid
 #pragma kernel CSBuildGrid  
 #pragma kernel CSFlocking
 
+//구조체
 struct UnitData
 {
     float2 position;
@@ -16,6 +18,7 @@ struct GridCell
     int count;
 };
 
+//GPU메모리
 RWStructuredBuffer<UnitData> units;
 RWStructuredBuffer<GridCell> grid;
 

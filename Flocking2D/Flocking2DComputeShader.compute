@@ -1,14 +1,18 @@
-// Flocking2D.compute
+//함수 네이밍
 #pragma kernel CSFlocking
 
+//구조체
 struct UnitData
 {
     float2 position;
     float2 velocity;
 };
 
+
+//GPU메모리
 RWStructuredBuffer<UnitData> units;
 
+//Union
 int unitCount;
 float separationRadius;
 float alignmentRadius;
@@ -24,6 +28,7 @@ float deltaTime;
 float2 boundsMin;
 float2 boundsMax;
 
+//warp 32thread 기준으로 올리기
 [numthreads(64, 1, 1)]
 void CSFlocking(uint3 id : SV_DispatchThreadID)
 {
@@ -40,7 +45,8 @@ void CSFlocking(uint3 id : SV_DispatchThreadID)
     int aliCount = 0;
     int cohCount = 0;
     
-    // 모든 이웃 검사
+    //모든 이웃 검사
+    //블로킹처리
     for (int i = 0; i < unitCount; i++)
     {
         if (i == (int)id.x) continue;
@@ -49,7 +55,7 @@ void CSFlocking(uint3 id : SV_DispatchThreadID)
         float2 diff = self.position - other.position;
         float distance = length(diff);
         
-        // Separation
+        // 분리
         if (distance > 0 && distance < separationRadius)
         {
             float2 repel = normalize(diff) / distance;
@@ -57,14 +63,14 @@ void CSFlocking(uint3 id : SV_DispatchThreadID)
             sepCount++;
         }
         
-        // Alignment
+        // 정렬
         if (distance > 0 && distance < alignmentRadius)
         {
             alignment += other.velocity;
             aliCount++;
         }
         
-        // Cohesion
+        // 응집
         if (distance > 0 && distance < cohesionRadius)
         {
             cohesion += other.position;

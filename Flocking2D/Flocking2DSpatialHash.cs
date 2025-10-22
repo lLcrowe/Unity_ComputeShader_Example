@@ -2,6 +2,10 @@ using UnityEngine;
 
 public class FlockingSpatialHash : MonoBehaviour
 {
+    //CPU GPU  초기화 한번만 교환하는 샘플
+    //Compute코드의 연산,메모리공간성도 개선
+
+
     [Header("Assets")]
     [SerializeField] private ComputeShader computeShader;
     [SerializeField] private Material material;
@@ -176,17 +180,7 @@ public class FlockingSpatialHash : MonoBehaviour
     {
         if (unitBuffer == null || computeShader == null) return;
 
-        // 디버그: 2초마다 첫 유닛 위치 출력
-        //debugTimer += Time.deltaTime;
-        //if (logDebugInfo && debugTimer > 2f)
-        //{
-        //    debugTimer = 0f;
-        //    Vector4[] debugData = new Vector4[1];
-        //    unitBuffer.GetData(debugData, 0, 0, 1);
-        //    Debug.Log($"Frame {Time.frameCount}: Unit 0 pos=({debugData[0].x:F1},{debugData[0].y:F1}) vel=({debugData[0].z:F2},{debugData[0].w:F2})");
-        //}
-
-
+       
 
         // Compute 실행
         

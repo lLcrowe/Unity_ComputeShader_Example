@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class Flocking2DGPUOptimized : MonoBehaviour
 {
+    //CPU GPU  작은데이터를 빈번히 교환하는 샘플
+
+
     [Header("Compute Shader")]
     [SerializeField] private ComputeShader flockingShader;
 
@@ -29,8 +32,6 @@ public class Flocking2DGPUOptimized : MonoBehaviour
     private ComputeBuffer unitBuffer;
     private ComputeBuffer argsBuffer;
     private int kernelIndex;
-
-    // DrawIndirect용 args
     private uint[] args = new uint[5] { 0, 0, 0, 0, 0 };
 
     private void Start()

@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class Flocking2DGPU : MonoBehaviour
 {
+    //CPU GPU 데이터배열을 빈번히 교환하는 샘플
+
     [Header("Compute Shader")]
     [SerializeField] private ComputeShader flockingShader;
 
