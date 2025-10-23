@@ -1,0 +1,38 @@
+﻿#pragma kernel UpdateFlash
+
+struct FlashParticle
+{
+    float3 Position;
+    float3 Velocity;
+    float Lifetime;
+    float Brightness;
+};
+
+RWStructuredBuffer<FlashParticle> flashBuffer;
+float deltaTime;
+int particleCount;
+
+[numthreads(256, 1, 1)]
+void UpdateFlash(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint) particleCount)
+        return;
+    
+    FlashParticle particle = flashBuffer[id.x];
+    
+    // 생명주기가 끝난 파티클은 업데이트 안 함
+    if (particle.Lifetime < 0.0)
+        return;
+    
+    // 물리 업데이트
+    particle.Position += particle.Velocity * deltaTime;
+    particle.Velocity += float3(0, -9.81, 0) * deltaTime; // 중력
+    
+    // 생명주기 감소
+    particle.Lifetime -= deltaTime;
+    
+    // Brightness 감소 (페이드아웃)
+    particle.Brightness *= 0.95;
+    
+    flashBuffer[id.x] = particle;
+}

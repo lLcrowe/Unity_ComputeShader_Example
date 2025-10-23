@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class FlashParticleSystemGPU : MonoBehaviour
 {
@@ -35,15 +35,13 @@ public class FlashParticleSystemGPU : MonoBehaviour
         public float Brightness;
     }
 
-    private void Awake()
-    {
-        ValidateReferences();
-        InitializeKernels();
-        InitializeBuffers();
-    }
 
     private void OnEnable()
     {
+
+        ValidateReferences();
+        InitializeKernels();
+        InitializeBuffers();
         BindShaderProperties();
     }
 
@@ -54,7 +52,7 @@ public class FlashParticleSystemGPU : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        //if (Input.GetKey(KeyCode.Space))
         {
             Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(
                 new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f)
