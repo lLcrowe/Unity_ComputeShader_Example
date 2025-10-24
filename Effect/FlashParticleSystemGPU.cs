@@ -29,10 +29,10 @@ public class FlashParticleSystemGPU : MonoBehaviour
     // Flash 파티클 구조체 (CPU 측)
     private struct FlashParticle
     {
-        public Vector3 Position;
-        public Vector3 Velocity;
-        public float Lifetime;
-        public float Brightness;
+        public Vector3 Position;//12
+        public Vector3 Velocity;//12
+        public float Lifetime;//4
+        public float Brightness;//4
     }
 
 

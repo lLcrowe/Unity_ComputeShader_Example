@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 public class ComputeSimpleExample : MonoBehaviour
@@ -40,35 +40,37 @@ public class ComputeSimpleExample : MonoBehaviour
 
 
         // === 2. GPU 버퍼 생성 ===
+        //크기//데이터타입크기
         ComputeBuffer buffer = new ComputeBuffer(arraySize, sizeof(float));
-
 
         // === 3. CPU → GPU 전송 ===
         buffer.SetData(inputData);
         Debug.Log("→ CPU에서 GPU로 데이터 전송");
 
 
-        // === 4. Kernel 설정 ===
-        int kernelIndex = computeShader.FindKernel("MultiplyByTwo");
-        computeShader.SetBuffer(kernelIndex, "numbers", buffer);
+        // == 4. Kernel 설정 ==
+        int kernelID = computeShader.FindKernel("MultiplyByTwo");
+        computeShader.SetBuffer(kernelID, "numbers", buffer);
 
 
-        // === 5. Dispatch 계산 및 실행 ===
-        int numThreads = 64;
+        // == 5. Dispatch 계산 및 실행 ==
+        computeShader.GetKernelThreadGroupSizes(kernelID, out uint threadX, out _, out _);
+        //int numThreads = 64;
+        int numThreads = (int)threadX;
         int dispatchGroups = Mathf.CeilToInt(arraySize / (float)numThreads);
         Debug.Log($"→ Dispatch: {dispatchGroups} 그룹 (총 {dispatchGroups * numThreads}개 스레드)");
 
-        computeShader.Dispatch(kernelIndex, dispatchGroups, 1, 1);
+        computeShader.Dispatch(kernelID, dispatchGroups, 1, 1);
         Debug.Log("→ GPU에서 계산 실행 중...");
 
 
-        // === 6. GPU → CPU 결과 받기 ===
+        // == 6. GPU → CPU 결과 받기 ==
         float[] outputData = new float[arraySize];
         buffer.GetData(outputData);
         Debug.Log($"[GPU 출력] {string.Join(", ", outputData)}");
 
 
-        // === 7. 검증 ===
+        // == 7. 검증 ==
         bool success = true;
         for (int i = 0; i < arraySize; i++)
         {
@@ -134,7 +136,7 @@ public class ComputeSimpleExample : MonoBehaviour
 
         // === 4. GPU 실행 ===
         computeShader.Dispatch(kernelIndex, threadGroupsX, threadGroupsY, 1);
-        Debug.Log("→ GPU에서 픽셀 분석 중...");
+        Debug.Log("→ GPU에서 실행...");
 
 
         // === 5. 결과 받기 ===
