@@ -1,0 +1,40 @@
+// ==================== Kernel 1: 배열 2배 만들기 ====================
+#pragma kernel MultiplyByTwo
+
+RWStructuredBuffer<float> numbers;
+
+[numthreads(64, 1, 1)]
+void MultiplyByTwo(uint3 id : SV_DispatchThreadID)
+{
+    numbers[id.x] = numbers[id.x] * 2.0;
+}
+
+
+// ==================== Kernel 2: 검은색 픽셀 카운트 ====================
+#pragma kernel CountBlackPixels
+
+Texture2D<float4> InputTexture;
+RWStructuredBuffer<int> Counter;
+float BlackThreshold;
+int Width;
+int Height;
+
+[numthreads(8, 8, 1)]
+void CountBlackPixels(uint3 id : SV_DispatchThreadID)
+{
+    // 범위 체크
+    if (id.x >= (uint)Width || id.y >= (uint)Height)
+        return;
+    
+    // 픽셀 읽기
+    float4 color = InputTexture[id.xy];
+    
+    // 밝기 계산
+    float brightness = (color.r + color.g + color.b) / 3.0;
+    
+    // 검은색 판정 후 카운트
+    if (brightness <= BlackThreshold)
+    {
+        InterlockedAdd(Counter[0], 1);
+    }
+}
